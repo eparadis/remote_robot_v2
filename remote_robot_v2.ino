@@ -14,8 +14,8 @@ const byte pinBphase = 12;
 
 double LeftPIDInput, LeftPIDOutput, LeftPIDSetpoint;
 double RightPIDInput, RightPIDOutput, RightPIDSetpoint;
-PID leftPID(&LeftPIDInput, &LeftPIDOutput, &LeftPIDSetpoint, 5, 1, 1, DIRECT);
-PID rightPID(&RightPIDInput, &RightPIDOutput, &RightPIDSetpoint, 5, 1, 1, DIRECT);
+PID leftPID(&LeftPIDInput, &LeftPIDOutput, &LeftPIDSetpoint, 5, 1, 0, DIRECT);
+PID rightPID(&RightPIDInput, &RightPIDOutput, &RightPIDSetpoint, 5, 1, 0, DIRECT);
 
 void setup() {
   pinMode(pinQA_I, INPUT );
@@ -26,6 +26,8 @@ void setup() {
   
   pinMode(pinAphase, OUTPUT);
   pinMode(pinBphase, OUTPUT);
+  pinMode(pinAen, OUTPUT);
+  pinMode(pinBen, OUTPUT);
   
   attachInterrupt(0, left_encoder_ISR, CHANGE);  // we test the value of the pin in the ISR
   attachInterrupt(1, right_encoder_ISR, CHANGE);  // ditto
@@ -51,7 +53,7 @@ unsigned long msgTime = 0;
 unsigned long speedSampleTime = 0;  // keeping track of when to do speed calculation
 const unsigned long speedSamplePeriod = 100;  // in milliseconds
 
-int prevLeftEnc = 0, prevRightEnc;
+int prevLeftEnc = 0, prevRightEnc = 0;
 int LeftSpeed, RightSpeed;
 
 void loop()
@@ -279,7 +281,7 @@ void SetLeftMotorSpeed( int spd)
 // command a motor speed with a signed integer 
 void SetRightMotorSpeed( int spd)
 {
-  spd = constrain( spd, -255, 255);
+  //spd = constrain( spd, -255, 255);
     
   if( spd == 0)
   {
