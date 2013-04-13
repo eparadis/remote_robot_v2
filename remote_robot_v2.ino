@@ -1,4 +1,5 @@
 #include <PID_v1.h>    // http://playground.arduino.cc/Code/PIDLibrary
+#include <PinChangeInt.h>  // http://code.google.com/p/arduino-pinchangeint/wiki
 
 // encoders
 const byte pinQA_I = 2;
@@ -17,20 +18,42 @@ double RightPIDInput, RightPIDOutput, RightPIDSetpoint;
 PID leftPID(&LeftPIDInput, &LeftPIDOutput, &LeftPIDSetpoint, 5, 1, 0, DIRECT);
 PID rightPID(&RightPIDInput, &RightPIDOutput, &RightPIDSetpoint, 5, 1, 0, DIRECT);
 
+volatile byte x, px, y, py;
+volatile byte x2, px2, y2, py2;
+volatile int LeftEnc = 0;
+volatile int RightEnc = 0;
+unsigned long msgTime = 0;
+
+unsigned long speedSampleTime = 0;  // keeping track of when to do speed calculation
+const unsigned long speedSamplePeriod = 200;  // in milliseconds
+
+int prevLeftEnc = 0, prevRightEnc = 0;
+int LeftSpeed, RightSpeed;
+
 void setup() {
   pinMode(pinQA_I, INPUT );
   pinMode(pinQA_Q, INPUT );
   pinMode(pinQB_I, INPUT );
   pinMode(pinQB_Q, INPUT );
   pinMode(13, OUTPUT);
+  x = digitalRead(pinQA_I);  // read these to get the initial states for the ISRs
+  y = digitalRead(pinQA_Q);
+  x2 = digitalRead(pinQB_I);
+  y2 = digitalRead(pinQB_Q);
+  
+  PCintPort::attachInterrupt(pinQA_I, &ISR_A_I, CHANGE);
+  PCintPort::attachInterrupt(pinQA_Q, &ISR_A_Q, CHANGE);
+  PCintPort::attachInterrupt(pinQB_I, &ISR_B_I, CHANGE);
+  PCintPort::attachInterrupt(pinQB_Q, &ISR_B_Q, CHANGE);
+  
   
   pinMode(pinAphase, OUTPUT);
   pinMode(pinBphase, OUTPUT);
   pinMode(pinAen, OUTPUT);
   pinMode(pinBen, OUTPUT);
   
-  attachInterrupt(0, left_encoder_ISR, CHANGE);  // we test the value of the pin in the ISR
-  attachInterrupt(1, right_encoder_ISR, CHANGE);  // ditto
+  //attachInterrupt(0, left_encoder_ISR, CHANGE);  // we test the value of the pin in the ISR
+  //attachInterrupt(1, right_encoder_ISR, CHANGE);  // ditto
   
   LeftPIDSetpoint = 0;
   RightPIDSetpoint = 0;
@@ -43,18 +66,6 @@ void setup() {
   
   Serial.begin( 115200 );
 }
-
-byte x, px, y, py;
-byte x2, px2, y2, py2;
-volatile int LeftEnc = 0;
-volatile int RightEnc = 0;
-unsigned long msgTime = 0;
-
-unsigned long speedSampleTime = 0;  // keeping track of when to do speed calculation
-const unsigned long speedSamplePeriod = 100;  // in milliseconds
-
-int prevLeftEnc = 0, prevRightEnc = 0;
-int LeftSpeed, RightSpeed;
 
 void loop()
 {
@@ -153,112 +164,83 @@ void loop()
 }
 
 // left encoder interrupt
-void left_encoder_ISR()
+void ISR_A_I()
 { 
   px = x;
   x = digitalRead(pinQA_I);
-  
-  py = y;
-  y = digitalRead(pinQA_Q);
+  //y = digitalRead(pinQA_Q);
   
   digitalWrite( 13, y);  // debugging LED
   
-  /*LeftEncTime = micros();
-  if( LeftEncTime - prevLeftEncTime > 100)  // only calc width if it was longer than 100uS (reasonable)
-  {
-    if( x == HIGH && y == HIGH || x == LOW && y == LOW)
-      LeftDirIsFwd = HIGH;  // fwd
-    else 
-      LeftDirIsFwd = LOW;  // rev
-    LeftWidth = LeftEncTime - prevLeftEncTime;
-    prevLeftEncTime = LeftEncTime;
-  }*/
-  
-  if( px == LOW && x == HIGH )
-  { 
+  if( px == LOW && x == HIGH ) { 
     // x high transition
-    if( y )
-      LeftEnc ++;
-    else
-      LeftEnc --;
+    if( y ) LeftEnc ++;
+    else LeftEnc --;
   }
   
-  if( px == HIGH && x == LOW )
-  {
+  if( px == HIGH && x == LOW ) {
     // x low transition
-    if( y )
-      LeftEnc --;
-    else
-      LeftEnc ++;
+    if( y ) LeftEnc --;
+    else LeftEnc ++;
   }
+}
+
+void ISR_A_Q()
+{
+  //x = digitalRead(pinQA_I);
+  py = y;
+  y = digitalRead(pinQA_Q);
   
-/*
-  if( py == LOW && y == HIGH )
-  {
+  if( py == LOW && y == HIGH ) {
     // y high transition
-    if( x )
-      count --;
-    else
-      count ++;
+    if( x ) LeftEnc --;
+    else LeftEnc ++;
   }
   
-  if( py == HIGH && y == LOW )
-  {
+  if( py == HIGH && y == LOW ) {
     // y low transision
-    if( x )
-      count ++;
-    else
-      count --;
+    if( x ) LeftEnc ++;
+    else LeftEnc --;
   }
-*/
 }
 
 // right encoder interrupt
-void right_encoder_ISR()
+void ISR_B_I()
 {
   px2 = x2;
   x2 = digitalRead(pinQB_I);
+  //y2 = digitalRead(pinQB_Q);
   
+  if( px2 == LOW && x2 == HIGH ) { 
+    // x high transition
+    if( y2 ) RightEnc ++;
+    else RightEnc --;
+  }
+  
+  if( px2 == HIGH && x2 == LOW ) {
+    // x low transition
+    if( y2 ) RightEnc --;
+    else RightEnc ++;
+  }
+}
+
+void ISR_B_Q()
+{
+  //x2 = digitalRead(pinQB_I);
   py2 = y2;
   y2 = digitalRead(pinQB_Q);
   
-  if( px2 == LOW && x2 == HIGH )
-  { 
-    // x high transition
-    if( y2 )
-      RightEnc ++;
-    else
-      RightEnc --;
-  }
-  
-  if( px2 == HIGH && x2 == LOW )
-  {
-    // x low transition
-    if( y2 )
-      RightEnc --;
-    else
-      RightEnc ++;
-  }
-  
-/*  if( py2 == LOW && y2 == HIGH )
-  {
+  if( py2 == LOW && y2 == HIGH ) {
     // y high transition
-    if( x2 )
-      count2 --;
-    else
-      count2 ++;
+    if( x2 ) RightEnc --;
+    else RightEnc ++;
   }
   
-  if( py2 == HIGH && y2 == LOW )
-  {
+  if( py2 == HIGH && y2 == LOW ) {
     // y low transision
-    if( x2 )
-      count2 ++;
-    else
-      count2 --;
+    if( x2 ) RightEnc ++;
+    else RightEnc --;
   }
-*/
-  
 }
 
 // command a motor speed with a signed integer 
