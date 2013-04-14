@@ -59,12 +59,12 @@ void setup() {
   RightPIDSetpoint = 0;
   leftPID.SetOutputLimits(-255, 255);
   rightPID.SetOutputLimits(-255, 255);
-  leftPID.SetSampleTime(100);
-  rightPID.SetSampleTime(100);
+  leftPID.SetSampleTime(speedSamplePeriod);
+  rightPID.SetSampleTime(speedSamplePeriod);
   leftPID.SetMode(AUTOMATIC);  // turn PID on
   rightPID.SetMode(AUTOMATIC);  
   
-  Serial.begin( 115200 );
+  Serial.begin( 9600 );
 }
 
 void loop()
@@ -110,7 +110,10 @@ void loop()
     Serial.print( "LKi " ); Serial.print( leftPID.GetKi() ); Serial.print( " " );
     Serial.print( "LKd " ); Serial.print( leftPID.GetKd() ); Serial.print( " " );
 
-    Serial.print( "Di " ); Serial.print( ReadSharpSensor(A0) ); Serial.print( " " );
+    Serial.print( "Di0 " ); Serial.print( ReadSharpSensor(A0) ); Serial.print( " " );
+    Serial.print( "Di1 " ); Serial.print( ReadSharpSensor(A1) ); Serial.print( " " );
+    Serial.print( "Di2 " ); Serial.print( ReadSharpSensor(A2) ); Serial.print( " " );
+    
     Serial.print( "\r\n");
   }
   
