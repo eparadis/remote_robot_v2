@@ -110,7 +110,7 @@ void loop()
     Serial.print( "LKi " ); Serial.print( leftPID.GetKi() ); Serial.print( " " );
     Serial.print( "LKd " ); Serial.print( leftPID.GetKd() ); Serial.print( " " );
 
-    //Serial.print( "Di " ); Serial.print( FutureDistanceSensor ); Serial.print( " " );
+    Serial.print( "Di " ); Serial.print( ReadSharpSensor(A0) ); Serial.print( " " );
     Serial.print( "\r\n");
   }
   
@@ -279,3 +279,17 @@ void SetRightMotorSpeed( int spd)
   }
 }
 
+// measure the voltage of a sharp GP2Y0A21 IR distance sensor and return the distance in mm
+float ReadSharpSensor( int pin)
+{
+  int raw = analogRead(pin);
+  if( raw > 600)
+    raw = 600;
+  float calc = 270.0 / (float) raw * 1024.0 / 5.0;
+  if( calc < 100.0 )
+    return 100.0;
+  else if( calc > 600.0 )
+    return 600.0;
+  else
+    return calc;
+}
