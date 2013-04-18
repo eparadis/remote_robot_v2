@@ -3,15 +3,22 @@
 
 // encoders
 const byte pinQA_I = 2;
-const byte pinQA_Q = 5;
+const byte pinQA_Q = 4;
 const byte pinQB_I = 3;
-const byte pinQB_Q = 7;
+const byte pinQB_Q = 5;
 
 // motors
 const byte pinAen = 11;
-const byte pinAphase = 8;
+const byte pinAphase = 6;
 const byte pinBen = 10;
 const byte pinBphase = 12;
+
+// analog multiplexer
+const byte aMuxS0 = 7;
+const byte aMuxS1 = 8;
+const byte aMuxS2 = 9;
+//const byte aMuxS4 = ?
+const byte aMuxSig = A3;
 
 double LeftPIDInput, LeftPIDOutput, LeftPIDSetpoint;
 double RightPIDInput, RightPIDOutput, RightPIDSetpoint;
@@ -46,6 +53,11 @@ void setup() {
   PCintPort::attachInterrupt(pinQB_I, &ISR_B_I, CHANGE);
   PCintPort::attachInterrupt(pinQB_Q, &ISR_B_Q, CHANGE);
   
+  pinMode( aMuxS0, OUTPUT);
+  pinMode( aMuxS1, OUTPUT);
+  pinMode( aMuxS2, OUTPUT);
+  //pinMode( aMuxS3, OUTPUT);
+  pinMode( aMuxSig, INPUT);
   
   pinMode(pinAphase, OUTPUT);
   pinMode(pinBphase, OUTPUT);
@@ -64,7 +76,7 @@ void setup() {
   leftPID.SetMode(AUTOMATIC);  // turn PID on
   rightPID.SetMode(AUTOMATIC);  
   
-  Serial.begin( 9600 );
+  Serial.begin( 115200 );
 }
 
 void loop()
@@ -113,6 +125,12 @@ void loop()
     Serial.print( "Di0 " ); Serial.print( ReadSharpSensor(A0) ); Serial.print( " " );
     Serial.print( "Di1 " ); Serial.print( ReadSharpSensor(A1) ); Serial.print( " " );
     Serial.print( "Di2 " ); Serial.print( ReadSharpSensor(A2) ); Serial.print( " " );
+    
+    Serial.print( "Rfl ");
+    for( int i = 0; i < 8; i++)
+    {
+      Serial.print( ReadAMux(i) ); Serial.print( " " ); 
+    }
     
     Serial.print( "\r\n");
   }
@@ -295,4 +313,20 @@ float ReadSharpSensor( int pin)
     return 600.0;
   else
     return calc;
+}
+
+// switch the analog mux and sample the attached analog port
+int ReadAMux( byte mux_pin)
+{
+  mux_pin = constrain(mux_pin, 0, 7);  // we currently only support the first three mux ports
+  
+  if(mux_pin & 0x01) digitalWrite( aMuxS0, HIGH); else digitalWrite( aMuxS0, LOW);
+  if(mux_pin & 0x02) digitalWrite( aMuxS1, HIGH); else digitalWrite( aMuxS1, LOW);
+  if(mux_pin & 0x04) digitalWrite( aMuxS2, HIGH); else digitalWrite( aMuxS2, LOW);
+  //digitalWrite( aMuxS0, mux_pin & 0x01);
+  //digitalWrite( aMuxS1, mux_pin & 0x02);
+  //digitalWrite( aMuxS2, mux_pin & 0x04);
+  //digitalWrite( aMuxS3, mux_pin & 0x08);
+  
+  return analogRead( aMuxSig);
 }
