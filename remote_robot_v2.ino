@@ -33,6 +33,7 @@ unsigned long msgTime = 0;
 
 unsigned long speedSampleTime = 0;  // keeping track of when to do speed calculation
 const unsigned long speedSamplePeriod = 200;  // in milliseconds
+const double encTicksPerRev = 44.0; // number of encoder ticks per wheel revolution
 
 int prevLeftEnc = 0, prevRightEnc = 0;
 int LeftSpeed, RightSpeed;
@@ -329,4 +330,26 @@ int ReadAMux( byte mux_pin)
   //digitalWrite( aMuxS3, mux_pin & 0x08);
   
   return analogRead( aMuxSig);
+}
+
+// convert encoder ticks per period into RPM
+/*
+ticks  | 1 period               | 1000 ms | 60s  | rev
+--------------------------------------------------------------------------  = rpm
+period | speedSamplePeriod (ms) | 1 s     | 1min | encTicksPerRev (ticks)
+*/
+double ticksToRPM( double tpp )
+{
+  return tpp * 1000.0 * 60.0 / ( (double) speedSamplePeriod * encTicksPerRev);
+}
+
+// convert RPM to encoder ticks per period
+/*
+rev | 1 min  | 1 sec   | speedSamplePeriod (ms) | encTicksPerRev (ticks)
+------------------------------------------------------------------------- = ticks per period
+min | 60 sec | 1000 ms | 1 period               | 1 rev
+*/
+double RPMToTicks( double rpm )
+{
+  return rpm * (double) speedSamplePeriod * encTicksPerRev / ( 60.0 * 1000.0);
 }
